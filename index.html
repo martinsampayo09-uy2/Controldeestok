@@ -24,7 +24,7 @@ body {
     overflow-x: hidden;  }
 
   /* BLOQUEO DE CONTENIDO HASTA REGISTRARSE */
-  #appContainer.bloqueado > *:not(.user-bar):not(.aviso-bloqueo) {
+  #appContainer.bloqueado > *:not(.user-bar):not(.aviso-bloqueo):not(.sobre-notificacion):not(#modalMensajeSistema) {
     filter: blur(6px);
     pointer-events: none;
     user-select: none;
@@ -117,6 +117,40 @@ body {
     cursor: pointer; margin-top: 10px; font-family: inherit;
   }
   .btn-auth-submit:hover { background: var(--azul-claro); }
+
+  /* ESTILO PARA EL SOBRE FLOTANTE DE NOTIFICACIONES */
+  .sobre-notificacion {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: var(--azul);
+    color: #fff;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 998;
+    transition: transform 0.2s;
+  }
+  .sobre-notificacion:hover { transform: scale(1.1); }
+  .sobre-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: var(--rojo);
+    color: #fff;
+    font-size: 10px;
+    padding: 3px 6px;
+    border-radius: 50%;
+    font-weight: bold;
+    display: none;
+  }
+  .sobre-badge.activo { display: block; }
 
   .estado-excel {
     background: #E6F7EC;
@@ -555,6 +589,34 @@ body {
 </style>
 </head>
 <body>
+
+<!-- ÍCONO DE SOBRE FLOTANTE (NOTIFICACIONES DE ACTUALIZACIÓN) -->
+<div class="sobre-notificacion" onclick="abrirModalMensaje()" title="Novedades del sistema">
+  ✉️
+  <span class="sobre-badge" id="sobreBadge">1</span>
+</div>
+
+<!-- MODAL PARA LEER O EDITAR EL MENSAJE DEL SOBRE -->
+<div class="modal-overlay" id="modalMensajeSistema">
+  <div class="modal">
+    <h3 id="tituloMensajeModal">📬 Novedades del Sistema</h3>
+    <div id="contenidoMensajeSistema" style="font-size: 14px; line-height: 1.5; margin-bottom: 15px; color: var(--texto);">
+      <!-- Aquí se cargará el mensaje -->
+    </div>
+    
+    <!-- Panel de administración protegido con clave maestra -->
+    <div id="panelAdminMensaje" style="display:none; border-top: 1px dashed var(--gris-borde); padding-top: 10px; margin-top: 10px;">
+      <label style="font-size: 11px; font-weight: bold; color: var(--azul);">Editar mensaje para los usuarios:</label>
+      <textarea id="inputNuevoMensaje" style="width:100%; padding:8px; border:1px solid var(--gris-borde); border-radius:6px; margin-top:5px; font-family:inherit;" placeholder="Escribe la nueva actualización..."></textarea>
+      <button class="btn btn-success btn-sm" style="margin-top:8px;" onclick="guardarNuevoMensaje()">💾 Guardar Mensaje</button>
+    </div>
+
+    <div class="modal-actions" style="justify-content: space-between;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAdminMensaje()">⚙️ Configurar</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="cerrarModalMensaje()">Cerrar</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL DE REGISTRO INDIVIDUAL Y CÓDIGO -->
 <div id="modalAuth">
@@ -1045,6 +1107,62 @@ function accionUsuario() {
   } else {
     abrirModalAuth();
   }
+}
+
+/* ============================================================
+   SISTEMA DE NOTIFICACIONES / SOBRE FLOTANTE (PROTEGIDO)
+============================================================ */
+function verificarMensajeSistema() {
+  const mensajeGuardado = localStorage.getItem('aviso_sistema_actualizacion');
+  const contenidoDiv = document.getElementById('contenidoMensajeSistema');
+  
+  if (mensajeGuardado) {
+    contenidoDiv.textContent = mensajeGuardado;
+    document.getElementById('sobreBadge').classList.add('activo');
+  } else {
+    contenidoDiv.textContent = "¡Bienvenido al sistema! No hay actualizaciones nuevas por el momento.";
+    document.getElementById('sobreBadge').classList.remove('activo');
+  }
+}
+
+function abrirModalMensaje() {
+  verificarMensajeSistema();
+  document.getElementById('modalMensajeSistema').classList.add('active');
+  document.getElementById('sobreBadge').classList.remove('activo');
+}
+
+function cerrarModalMensaje() {
+  document.getElementById('modalMensajeSistema').classList.remove('active');
+}
+
+function toggleAdminMensaje() {
+  const panel = document.getElementById('panelAdminMensaje');
+  
+  // Exige la clave maestra antes de permitir configurar/editar el mensaje
+  if (panel.style.display === 'none') {
+    const claveAdmin = prompt("🔐 Ingresa la clave maestra de administrador para editar el mensaje:");
+    if (claveAdmin !== "852963") {
+      mostrarToast('❌ Clave incorrecta. Solo el administrador puede modificar el mensaje.', 'error');
+      return;
+    }
+  }
+
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  if (panel.style.display === 'block') {
+    document.getElementById('inputNuevoMensaje').value = localStorage.getItem('aviso_sistema_actualizacion') || '';
+  }
+}
+
+function guardarNuevoMensaje() {
+  const nuevoTexto = document.getElementById('inputNuevoMensaje').value.trim();
+  if (!nuevoTexto) {
+    mostrarToast('⚠️ Escribe un mensaje', 'warning');
+    return;
+  }
+  localStorage.setItem('aviso_sistema_actualizacion', nuevoTexto);
+  mostrarToast('✅ Mensaje actualizado para todos', 'success');
+  toggleAdminMensaje();
+  verificarMensajeSistema();
 }
 
 /* ============================================================
@@ -2069,6 +2187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       cerrarModal();
       cerrarModalTicket();
       cerrarModalAuth();
+      cerrarModalMensaje();
     }
   });
   document.getElementById('modal').addEventListener('click', e => {
@@ -2076,6 +2195,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.getElementById('modalTicket').addEventListener('click', e => {
     if (e.target.id === 'modalTicket') cerrarModalTicket();
+  });
+  document.getElementById('modalMensajeSistema').addEventListener('click', e => {
+    if (e.target.id === 'modalMensajeSistema') cerrarModalMensaje();
   });
   window.addEventListener('beforeunload', () => { guardarEnStorage(); });
 });
