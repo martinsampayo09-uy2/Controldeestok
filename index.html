@@ -1335,7 +1335,7 @@ function actualizarEstadoExcel() {
 
   if (esMovil) {
     div.classList.add('no-vinculado');
-    span.innerHTML = '💾 Los datos <b>se guardan en este dispositivo</b>. 📱 En celular no se puede vincular Excel. Usa <b>⬇️ Excel</b>.';
+    span.innerHTML = '💾 Los datos se guardan en este dispositivo.<p>📱 En celular no se puede vincular a Excel </p>CADA TANTO RESPALDA GUARDANDO EN PDF.';
     btn.style.display = 'none'; return;
   }
   if (!SOPORTA_FS) {
