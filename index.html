@@ -1029,7 +1029,7 @@ async function solicitarCodigoPersonal() {
       },
       body: JSON.stringify({
         _subject: `SOLICITUD CÓDIGO - ${nombre}`,
-        Mensaje: `Hola Martín, un usuario solicita acceder a la aplicación de inventario.`,
+        Mensaje: `Hola Martín, un usuario solicita acceder al sistema de inventario.`,
         Nombre_Usuario: nombre,
         Correo_Usuario: email,
         CODIGO_ASIGNADO: codigoGenerado
@@ -1110,9 +1110,10 @@ function accionUsuario() {
 }
 
 /* ============================================================
-   SISTEMA DE NOTIFICACIONES / SOBRE FLOTANTE (PROTEGIDO)
+   SISTEMA DE NOTIFICACIONES / SOBRE FLOTANTE (COMPARTIDO)
 ============================================================ */
 function verificarMensajeSistema() {
+  // Leemos directamente del localStorage global de la app para que refleje lo último guardado
   const mensajeGuardado = localStorage.getItem('aviso_sistema_actualizacion');
   const contenidoDiv = document.getElementById('contenidoMensajeSistema');
   
@@ -1159,11 +1160,19 @@ function guardarNuevoMensaje() {
     mostrarToast('⚠️ Escribe un mensaje', 'warning');
     return;
   }
+  // Se guarda globalmente para que se actualice al instante en la aplicación
   localStorage.setItem('aviso_sistema_actualizacion', nuevoTexto);
   mostrarToast('✅ Mensaje actualizado para todos', 'success');
   toggleAdminMensaje();
   verificarMensajeSistema();
 }
+
+/* Sincronización automática en tiempo real entre pestañas/usuarios */
+window.addEventListener('storage', (e) => {
+  if (e.key === 'aviso_sistema_actualizacion') {
+    verificarMensajeSistema();
+  }
+});
 
 /* ============================================================
    ESTADO GLOBAL
@@ -2159,6 +2168,8 @@ function borrarHistorial() {
 document.addEventListener('DOMContentLoaded', async () => {
   cargarDeStorage();
   actualizarEstadoExcel();
+  verificarMensajeSistema(); // Comprueba y carga el mensaje actual al abrir la app
+  
   if (inventario.length === 0 && !localStorage.getItem(STORAGE_KEY)) {
     cargarEjemplos();
   } else {
